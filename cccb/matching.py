@@ -236,7 +236,9 @@ def _matching_spans(text_a: str, text_b: str) -> list:
 
     spans = []
     covered = []  # (start, end) ranges in text_a already accounted for
-    for shingle in shared:
+    # Left to right in text_a, not in set order: which shingle of a repeated passage is met first decides
+    # where its span starts, so hash order made the same two texts measure differently from run to run.
+    for shingle in sorted(shared, key=positions_a.__getitem__):
         pos_a, pos_b = positions_a[shingle], positions_b[shingle]
         if any(start <= pos_a < end for start, end in covered):
             continue
