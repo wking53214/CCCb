@@ -40,6 +40,14 @@ import paths and a provenance note. Full history is in CCC's git log.
 
     system = CCCSystem(text_matcher=TextMatcher())
 
+## Optional CNS connection
+
+CCCb does not need CNS. It has no runtime dependency, nothing in the package imports CNS when it loads (and nothing imports CCC), and `tests/test_cns_independence.py` checks this with CNS blocked. `cccb/cns_connector.py` is the one place that knows CNS exists. Install it with `pip install 'cccb[cns]'`; without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
+
+**What is bound.** One measurement of an ordered pair of texts (the new text, then the earlier one it was compared with), as a `DuplicateFinding` (`duplicate_finding(a, b)`) or a `RecurrenceFinding` (`recurrence_finding(a, b)`): the SHA-256 of each text (the texts are not copied), the measurement kind, the score, the threshold and minimum in force, and the result. `duplicate_digest` / `recurrence_digest` hash that with `cns.gate.subject_digest`, and `binds(result, finding)` says whether a `cns.gate.GateResult` was issued against exactly that finding, using the subject labels `cccb.duplicate` and `cccb.recurrence`. A verdict "these are duplicates" binds to that pair and that measurement; change either text, swap the pair or change a threshold and it does not bind.
+
+**Binding only, and why.** There is no gate, verdict mapping or chain here. CCCb measures and decides nothing; whether a duplicate counts as a new occurrence, or a recurrence may raise an anomaly, is CCC's rule. The `result` in a finding is only whether the measurement cleared its own threshold. `tests/test_cns_connector.py` runs the real `TextMatcher` over real texts and checks the findings agree with what it reports.
+
 ## Known gaps
 
 - `tests/test_smash_findings.py` reads a license file from `~/HERALD/LICENSE`
