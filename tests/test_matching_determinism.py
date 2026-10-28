@@ -26,9 +26,21 @@ CODE = textwrap.dedent(
 )
 
 
-def measure(seed: int) -> str:
+TIE_CODE = textwrap.dedent("""
+    from cccb import TextMatcher
+    m = TextMatcher()
+    passage = "the quarterly ledger reconciliation failed on the third attempt because the hash chain was broken at row nine hundred"
+    for i in ("alpha", "beta", "gamma", "delta", "epsilon", "zeta"):
+        m.add(i, passage + " tail " + i)
+    d = m.duplicate_of(passage)
+    r = m.recurrence_of("the ledger reconciliation failed on the third attempt because the hash chain was broken")
+    print(d[0], r[0], [x[0] for x in r[2]])
+""")
+
+
+def measure(seed: int, code: str = CODE) -> str:
     env = {"PYTHONPATH": str(ROOT), "PYTHONHASHSEED": str(seed), "PATH": os.environ.get("PATH", "/usr/bin:/bin")}
-    done = subprocess.run([sys.executable, "-c", CODE], capture_output=True, text=True, env=env, timeout=120)
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, timeout=120)
     assert done.returncode == 0, done.stderr
     return done.stdout.strip()
 
@@ -41,3 +53,8 @@ def test_the_same_two_texts_measure_the_same_under_every_hash_seed():
 def test_a_text_that_repeats_a_passage_is_measured_differently_from_each_side():
     forward, backward = measure(0).split()[:2]
     assert (forward, backward) == ("48", "45")
+
+
+def test_tied_candidates_resolve_the_same_under_every_hash_seed():
+    results = {seed: measure(seed, TIE_CODE) for seed in range(12)}
+    assert len(set(results.values())) == 1, results
