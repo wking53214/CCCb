@@ -331,7 +331,7 @@ class ShingleIndex:
             if shingle in self._boilerplate_shingles:
                 continue
             ids.update(self._shingle_to_ids.get(shingle, ()))
-        return {i: self._texts[i] for i in ids}
+        return {i: self._texts[i] for i in sorted(ids)}
 
     def add(self, item_id: str, text: str) -> None:
         folded = _fold(text)[:MAX_COMPARISON_LENGTH]

@@ -129,7 +129,7 @@ class RecurrenceDetector:
             candidate_ids.update(self._concept_to_ids.get(concept, ()))
 
         matches = []
-        for did in candidate_ids:
+        for did in sorted(candidate_ids):
             other = self._signatures.get(did, frozenset())
             if len(other) < MINIMUM_SIGNATURE_SIZE:
                 continue
