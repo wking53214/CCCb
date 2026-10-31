@@ -5,20 +5,20 @@ merged code before this file existed -- these are that proof, kept.
 """
 from __future__ import annotations
 
-import os
+from importlib import resources
 
 from cccb.matching import anti_probability_of_coincidental_match
 
-_LICENSE_PATH = os.path.expanduser("~/HERALD/LICENSE")
 _REAL_DUPLICATE = ("This is the actual thing being resubmitted every time to "
                     "inflate the anomaly count exactly what the duplicate "
                     "check exists to catch here")
 
 
 def _license_text():
-    if not os.path.exists(_LICENSE_PATH):
-        return None
-    return open(_LICENSE_PATH).read()[:900]
+    # Packaged Apache-2.0 text; its first 900 characters match HERALD's LICENSE.
+    text = (resources.files("cccb") / "known_boilerplate" / "apache2.txt").read_text()[:900]
+    assert len(text) >= 900
+    return text
 
 
 def test_boilerplate_can_no_longer_camouflage_a_real_duplicate():
@@ -27,8 +27,6 @@ def test_boilerplate_can_no_longer_camouflage_a_real_duplicate():
     boilerplate, got it excluded, and never even looked at the real
     139-character duplicate sitting next to it."""
     license_text = _license_text()
-    if license_text is None:
-        return
     text_a = "11111" + _REAL_DUPLICATE + "22222" + license_text + "33333"
     text_b = "44444" + _REAL_DUPLICATE + "55555" + license_text + "66666"
     r = anti_probability_of_coincidental_match(text_a, text_b)
@@ -61,9 +59,7 @@ def test_stacked_evasion_attempts_are_still_caught():
     """All three techniques combined -- padding, then boilerplate, wrapped
     around the real payload -- in one text, both sides."""
     license_text = _license_text()
-    if license_text is None:
-        return
-    cloaked_a = ("x" * 2200) + _REAL_DUPLICATE + license_text
-    cloaked_b = ("y" * 2200) + _REAL_DUPLICATE + license_text
+    cloaked_a = ("x" * 2200) + _REAL_DUPLICATE + "22222" + license_text
+    cloaked_b = ("y" * 2200) + _REAL_DUPLICATE + "55555" + license_text
     r = anti_probability_of_coincidental_match(cloaked_a, cloaked_b)
     assert r.implausible_as_coincidence is True

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import random
 import time
+from importlib import resources
 
 from cccb.matching import (
     MAX_COMPARISON_LENGTH,
@@ -16,6 +17,13 @@ from cccb.matching import (
     anti_probability_of_coincidental_match,
     best_match_against,
 )
+
+
+def _license_text():
+    # Packaged Apache-2.0 text; its first 900 characters match HERALD's LICENSE.
+    text = (resources.files("cccb") / "known_boilerplate" / "apache2.txt").read_text()[:900]
+    assert len(text) >= 900
+    return text
 
 
 def _random_text(length, seed):
@@ -95,11 +103,7 @@ def test_known_boilerplate_does_not_trigger_a_false_duplicate():
     ecosystem produced anti_probability 0.0 over a 900-character overlap --
     "impossible as coincidence" for two files that share nothing but
     standard license boilerplate."""
-    import os
-    license_path = os.path.expanduser("~/HERALD/LICENSE")
-    if not os.path.exists(license_path):
-        return  # environment-dependent fixture; skip quietly if unavailable
-    license_text = open(license_path).read()[:900]
+    license_text = _license_text()
     result = anti_probability_of_coincidental_match(license_text, license_text)
     assert result.explained_by_known_boilerplate is True
     assert result.implausible_as_coincidence is False
@@ -109,11 +113,7 @@ def test_a_genuine_match_still_wins_when_boilerplate_is_also_a_candidate():
     """The boilerplate exclusion must not let a boilerplate-only candidate
     "win" best-match and silently hide a real duplicate sitting in a
     different candidate."""
-    import os
-    license_path = os.path.expanduser("~/HERALD/LICENSE")
-    if not os.path.exists(license_path):
-        return
-    license_text = open(license_path).read()[:900]
+    license_text = _license_text()
     genuine = _random_text(500, seed=99)
     query = license_text + genuine
     candidates = {"just_the_license": license_text, "the_real_duplicate": genuine}
