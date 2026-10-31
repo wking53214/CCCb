@@ -15,7 +15,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 # Optional: lets a duplicate or recurrence finding be named for a CNS verdict (cccb.cns_connector). Nothing in CCCb imports CNS otherwise.
-cns = ["cns @ git+https://github.com/wking53214/CNS.git@v2.2.0"]
+cns = ["cns @ git+https://github.com/wking53214/CNS.git@v2.3.0"]
 
 [tool.setuptools]
 packages = ["cccb"]
