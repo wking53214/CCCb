@@ -1,37 +1,17 @@
 # CCCb
 
-Measures how alike two pieces of text are. Nothing else.
+Measures how alike two pieces of text are. It does not decide what that similarity means.
 
-## What it does
+## What it measures
 
-Two measurements, both deterministic, explainable and dependency-free:
+Both measurements are deterministic and need no outside dependencies.
 
-| measurement | question it answers | module |
+| Measurement | Question it answers | Module |
 |---|---|---|
-| duplicate | Is the overlap between two texts too long and specific to be coincidence? Uses the information content of the matched text (Shannon's ~1.3 bits per character of English), so a short shared phrase is unremarkable and a long, specific one is not. | `cccb.matching` |
-| recurrence | Do two texts share enough significant vocabulary to be the same pattern seen again, even with different evidence? Concept-set overlap (Jaccard, threshold 0.5). Catches shared wording, not the same idea in different words. | `cccb.recurrence` |
+| Duplicate | Is the overlap between two texts too long and specific to be coincidence? Short shared phrases are ignored; long, specific ones count. Uses the information content of the matched text (about 1.3 bits per character for English). | `cccb.matching` |
+| Recurrence | Do two texts share enough meaningful vocabulary to look like the same pattern seen again? Compares sets of significant words (Jaccard overlap, threshold 0.5). Catches shared wording, not the same idea expressed differently. | `cccb.recurrence` |
 
-`cccb.TextMatcher` bundles both behind the interface CCC plugs in: `add`,
-`duplicate_of`, `recurrence_of`, all returning plain strings and numbers.
-
-## What it does not do
-
-- It holds no records and makes no decisions. Whether a duplicate counts as a
-  new occurrence, or whether a recurrence may raise an anomaly to a pattern, is
-  CCC's rule, not this package's.
-- It does not prove anything is genuine. Two forgeries can match each other
-  perfectly; a match only says the overlap is not plausibly accidental.
-- It is not semantic. Meaning-based similarity plugs into CCC separately
-  (Ecology's `SemanticIndex` provider).
-- It imports nothing from CCC, and a test enforces that.
-
-## Where it came from
-
-Split out of [CCC](https://github.com/wking53214/CCC) at commit `d039efd`, when
-CCC was narrowed to one job (remembering claims over time so a machine cannot
-rewrite what a human thought). `matching.py`, `recurrence.py`, the
-known-boilerplate list and their direct tests moved here unchanged apart from
-import paths and a provenance note. Full history is in CCC's git log.
+`cccb.TextMatcher` bundles both behind three calls: `add`, `duplicate_of`, and `recurrence_of`. They return plain strings and numbers. Indexes live in memory only, so a caller that persists texts must re-add them after a restart.
 
 ## Using it with CCC
 
@@ -40,98 +20,42 @@ import paths and a provenance note. Full history is in CCC's git log.
 
     system = CCCSystem(text_matcher=TextMatcher())
 
-## Optional CNS connection
+## What it does not do
 
-CCCb does not need CNS. It has no runtime dependency, nothing in the package imports CNS when it loads (and nothing imports CCC), and `tests/test_cns_independence.py` checks this with CNS blocked. `cccb/cns_connector.py` is the one place that knows CNS exists. Install it with `pip install 'cccb[cns]'`; without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
+- It stores no records and makes no decisions. Whether a duplicate counts as a new occurrence, or a recurrence may raise an anomaly, is CCC's rule.
+- It does not prove a text is genuine. Two forgeries can match each other perfectly. A match only means the overlap is unlikely to be accidental.
+- It is not semantic. Meaning-based similarity is handled separately (Ecology's `SemanticIndex`, plugged into CCC).
+- It imports nothing from CCC or CNS when it loads. A test checks this with CNS blocked.
 
-**What is bound.** One measurement of an ordered pair of texts (the new text, then the earlier one it was compared with), as a `DuplicateFinding` (`duplicate_finding(a, b)`) or a `RecurrenceFinding` (`recurrence_finding(a, b)`): the SHA-256 of each text (the texts are not copied), the measurement kind, the score, the threshold and minimum in force, and the result. `duplicate_digest` / `recurrence_digest` hash that with `cns.gate.subject_digest`, and `binds(result, finding)` says whether a `cns.gate.GateResult` was issued against exactly that finding, using the subject labels `cccb.duplicate` and `cccb.recurrence`. A verdict "these are duplicates" binds to that pair and that measurement; change either text, swap the pair or change a threshold and it does not bind.
+## Settings in force
 
-**Binding only, and why.** There is no gate, verdict mapping or chain here. CCCb measures and decides nothing; whether a duplicate counts as a new occurrence, or a recurrence may raise an anomaly, is CCC's rule. The `result` in a finding is only whether the measurement cleared its own threshold. `tests/test_cns_connector.py` runs the real `TextMatcher` over real texts and checks the findings agree with what it reports.
+| Setting | Value |
+|---|---|
+| Duplicate threshold | 1e-9 |
+| Minimum match length | 40 characters |
+| Recurrence threshold | 0.5 |
+| Minimum signature size | 4 significant words |
+| Maximum comparison length | 50,000 characters |
 
-## Role in the STACK spine
+The entropy figure is a fixed English estimate. Comparisons measure shared wording only, never shared meaning.
 
-CCCb is a measurement library, not a spine stage. It is not one of the five
-evidence-spine components (HERALD, TIE, Conservation_Kernel,
-Governance_Gateway, CCC) and CNS's `chains/evidence_spine.py` does not mention
-it. It sits one level below the last of them: CCC (the store that judges an
-attempt to ingest) calls CCCb to measure whether a new text overlaps an earlier
-one, then applies its own rule to the number.
+## Optional CNS connector
 
-    HERALD -> TIE -> Conservation_Kernel -> Governance_Gateway -> CCC
-                                                                  |
-                                          (text_matcher=, injected)
-                                                                  v
-                                                        CCCb  TextMatcher
-                                                        matching + recurrence
-                                                                  .
-                                    optional, caller-driven       . cns_connector
-                                                                  v
-                                                    CNS  cns.gate.subject_digest
+CCCb runs without CNS. To use the connector, install with `pip install 'cccb[cns]'`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
 
-**Purpose.** Answer two questions about text, deterministically and without
-dependencies: is this overlap too long and specific to be coincidence, and do
-these texts share enough vocabulary to be the same pattern again.
+The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks whether a CNS gate result was issued for exactly that finding. Change either text, swap the pair, or change a threshold, and the binding fails.
 
-**Inputs and outputs.** Input: strings (`add(item_id, text)`, then
-`duplicate_of(text)` / `recurrence_of(text)`). Output: plain tuples of
-`str`, `float`, `int`, or `None`. Indexes live in memory only; a caller that
-persists texts feeds them back through `add` after a restart. With the CNS
-connector: a frozen `DuplicateFinding` or `RecurrenceFinding` holding SHA-256
-of each text, the score, thresholds and a boolean reading.
+The connector does not build gates, verdicts, or chains. It is a tested contract. No running flow in CCC or CNS calls `binds` from this package yet. (CCC calls its own verdict-binding method, which is a different function.)
 
-**Owns.** The two measurements, the thresholds in force (`DUPLICATE_THRESHOLD`
-1e-9, `MINIMUM_MATCH_LENGTH` 40, `RECURRENCE_THRESHOLD` 0.5,
-`MINIMUM_SIGNATURE_SIZE` 4), the packaged known-boilerplate texts used to
-discount licence text, and the shape of a finding.
+## Where it fits
 
-**Does not own.** Any record or store (CCC). What a match means: whether a
-duplicate counts as a new occurrence, whether a recurrence may raise an
-anomaly to a pattern, whether anything is ingested (CCC's rule). Truth or
-authenticity of a text. Meaning-based similarity (Ecology's `SemanticIndex`
-provider, plugged into CCC separately). Admission (Governance_Gateway),
-evidence recording (TIE), root-artifact judgement (Conservation_Kernel),
-claim extraction (HERALD). A CNS verdict: CCCb never issues a `GateResult`,
-and a finding's `result` is only whether the measurement cleared its own
-threshold.
+- CCC receives the matcher by injection. Its runtime code never imports CCCb, though its test suite does.
+- CCC and Link pin CCCb to commit `8e3c779`. Link uses it in a test.
+- CNS lists CCCb as an optional connector that loads CNS only on demand.
+- CCCb was split out of CCC at commit `d039efd`. Full history is in CCC's git log.
 
-**Companions.**
-[CCC](https://github.com/wking53214/CCC) depends on CCCb: its
-`pyproject.toml` pins `cccb` to commit `8e3c779` (an ancestor of this
-branch's base, so it does not include later changes), and `ccc/system.py`
-takes the matcher by injection (`text_matcher=None`), never importing CCCb.
-[CNS](https://github.com/wking53214/CNS) lists CCCb in
-`cns_composition/consumers.py` as an optional connector that loads `cns.gate`
-on demand. [Link](https://github.com/wking53214/Link) connects Triad-42, CCC
-and CNS; it has no `cccb` reference in its Python or TOML files, so CCCb
-reaches it only through CCC. Only CCC, CNS, Link and Ecology were checked for
-references; the other spine repositories were not searched.
-
-**CNS interaction: partial.** Implemented: an optional, binding-only
-connector that, only when called, imports `cns.gate` (`cccb/cns_connector.py:83`),
-hashes a finding with `cns.gate.subject_digest` (`:219`, `:225`) and checks a
-`cns.gate.GateResult` against it in `binds` (`:228`, `:245`). Absent: nothing
-in the package builds a gate, a verdict mapping or a chain, and nothing in
-`cccb/` outside `cns_connector.py` mentions CNS; `TextMatcher` and CCC's call
-path (`ccc/system.py:1180`, `:1200`) do not use the connector. Nothing in this
-repository or in CCC was found that calls `binds` in a running flow, so the
-connector is a tested contract, not an integrated step. There is no UAI-1
-(signed message) code here: CCCb runs inside CCC's process and sends nothing
-across one.
-
-**Maturity and limitations** (measured 2026-10-31). `python -m pytest -q`
-from the repository root with CNS 2.3.0 installed: 122 passed, 0 failed,
-0 skipped. Limits: in-memory indexes with no persistence; comparison length is
-capped (`MAX_COMPARISON_LENGTH` 50,000 characters); the entropy
-figure is a fixed English estimate (1.3 bits per character); shared wording
-only, never shared meaning.
-
-## Known gaps
-
-- The recurrence threshold and the duplicate threshold live here with the
-  math. CCC owns the decision about what a match means, but not yet these two
-  numbers.
+Current status and test results are in [docs/STATUS.md](docs/STATUS.md).
 
 ## Tests
 
-`pytest`. CI installs the package (not editable) and runs the suite against
-the installed copy, so data that fails to ship fails the build.
+Run `pytest` from the repository root. Tests that need CNS skip when it is not installed. In CI, the CNS job installs the extra and fails instead of skipping. Lint runs with ruff.
