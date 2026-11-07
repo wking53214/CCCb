@@ -224,12 +224,19 @@ def _extend_match(text_a: str, text_b: str, pos_a: int, pos_b: int, length: int)
 
 
 def _matching_spans(text_a: str, text_b: str) -> list:
-    """All maximal exact matching spans of at least SHINGLE_LENGTH
-    characters between the two texts -- not just the single longest.
+    """Exact matching spans of at least SHINGLE_LENGTH characters between
+    the two texts, one per shingle alignment that is tried, not one only.
+
+    Each 40-character chunk is aligned only at its first position in each
+    text (see _shingle_positions), so a chunk that repeats is not tried at
+    its other positions. Sampled checks found no case where this returned
+    less than the true longest shared stretch (see docs/STATUS.md). This is
+    not an exhaustive search of every alignment.
+
     Finding candidates is O(n) (shingle intersection); extending each into
-    its full span is O(span length). This is what makes the boilerplate
-    exclusion safe: a longer boilerplate span existing elsewhere in the
-    text can no longer hide a shorter, genuine one."""
+    its full span is O(span length). Keeping several spans lets a longer
+    boilerplate span elsewhere in the text avoid hiding a shorter, genuine
+    one."""
     positions_a = _shingle_positions(text_a)
     positions_b = _shingle_positions(text_b)
     shared = positions_a.keys() & positions_b.keys()
@@ -253,10 +260,12 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
     between these two texts, if it arose by chance between two independent
     sources?
 
-    Considers every matching span of at least MINIMUM_MATCH_LENGTH
-    characters, not just the single longest -- a longer boilerplate-only
-    span must not be able to suppress a shorter genuine one sitting
-    elsewhere in the same text. Both inputs are folded (see `_fold`) to
+    Considers each matching span _matching_spans returns (at least
+    MINIMUM_MATCH_LENGTH characters, one per aligned shingle), not only the
+    single longest. A longer boilerplate-only span must not be able to
+    suppress a shorter genuine one sitting elsewhere in the same text.
+    Repeated chunks are aligned at their first position only; see
+    _matching_spans. Both inputs are folded (see `_fold`) to
     close diacritic/fullwidth/common-confusable evasion before matching,
     and truncated to MAX_COMPARISON_LENGTH -- O(n) indexing means this can
     be a real, generous cap rather than a narrow one.
