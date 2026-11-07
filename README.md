@@ -8,7 +8,7 @@ Both measurements are deterministic and need no outside dependencies.
 
 | Measurement | Question it answers | Module |
 |---|---|---|
-| Duplicate | Is the overlap between two texts too long and specific to be coincidence? Short shared phrases are ignored; long, specific ones count. Uses the information content of the matched text (about 1.3 bits per character for English). | `cccb.matching` |
+| Duplicate | Is the overlap between two texts too long and specific to be coincidence? Short shared phrases are ignored; long, specific ones count. Produces an estimated coincidence score from the length of the matched text, using a fixed English information estimate (about 1.3 bits per character). | `cccb.matching` |
 | Recurrence | Do two texts share enough meaningful vocabulary to look like the same pattern seen again? Compares sets of significant words (Jaccard overlap, threshold 0.5). Catches shared wording, not the same idea expressed differently. | `cccb.recurrence` |
 
 `cccb.TextMatcher` bundles both behind three calls: `add`, `duplicate_of`, and `recurrence_of`. They return plain strings and numbers. Indexes live in memory only, so a caller that persists texts must re-add them after a restart.
@@ -37,13 +37,13 @@ Both measurements are deterministic and need no outside dependencies.
 | Minimum signature size | 4 significant words |
 | Maximum comparison length | 50,000 characters |
 
-The entropy figure is a fixed English estimate. Comparisons measure shared wording only, never shared meaning.
+The duplicate score is a heuristic estimate, not a calibrated probability: the entropy figure is a fixed English estimate, and the score does not account for searching across many prior records. Comparisons measure shared wording only, never shared meaning.
 
 ## Optional CNS connector
 
 CCCb runs without CNS. To use the connector, install with `pip install 'cccb[cns]'`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
 
-The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks whether a CNS gate result was issued for exactly that finding. Change either text, swap the pair, or change a threshold, and the binding fails.
+The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks that a CNS gate result carries the same subject and digest as that finding. Change either text, swap the pair, or change a threshold, and the binding fails. Binding does not prove who issued the result, that it passed, or that anything was authorized.
 
 The connector does not build gates, verdicts, or chains. It is a tested contract. No running flow in CCC or CNS calls `binds` from this package yet. (CCC calls its own verdict-binding method, which is a different function.)
 
