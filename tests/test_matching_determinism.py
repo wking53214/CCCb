@@ -1,9 +1,8 @@
 """The duplicate measurement must not depend on the process's hash seed.
 
-`_matching_spans` walks the shingles two texts share. Which shingle of a repeated passage it meets
-first decides where that span starts, so walking them in set order made the same two texts measure
-differently from one run to the next (the match length of one pair was 48 in some processes and 45 in
-others). Each seed below is a fresh interpreter, because hash order is fixed per process.
+`_matching_spans` gathers the alignments two texts share in a fixed order, so the same two texts measure
+the same in every process. Each seed below is a fresh interpreter, because hash order is fixed per process.
+The pair in CODE repeats a passage. Both directions measure its true longest overlap, 48 characters.
 """
 import os
 import subprocess
@@ -52,7 +51,7 @@ def test_the_same_two_texts_measure_the_same_under_every_hash_seed():
 
 def test_a_text_that_repeats_a_passage_is_measured_differently_from_each_side():
     forward, backward = measure(0).split()[:2]
-    assert (forward, backward) == ("48", "45")
+    assert (forward, backward) == ("48", "48")
 
 
 def test_tied_candidates_resolve_the_same_under_every_hash_seed():

@@ -150,13 +150,14 @@ def test_the_pair_is_ordered_because_the_measurement_is_made_in_that_order():
     assert recurrence_digest(recurrence_finding(RECUR, PATTERN)) != recurrence_digest(recurrence_finding(PATTERN, RECUR))
 
 
-def test_the_duplicate_measurement_itself_depends_on_the_order_of_the_pair():
-    """A text that repeats a passage is measured differently from each side, so the order is part of the finding."""
+def test_the_duplicate_measurement_is_symmetric_for_a_repeated_passage():
+    """Both directions measure the true longest overlap (48). The order still belongs to the finding,
+    because the digest hashes the pair in order (see the test above)."""
     repeated = ("bebhhhgdbhaggahedbfaaa agdga dhh dfddheag bcedeeh gahdggcf fbh bc gfhahaegcc dad  "
                 "bebhhhgdbhaggahedbfaaa agdga dhh dfddheag bcebf ")
     single = "bebhhhgdbhaggahedbfaaa agdga dhh dfddheag bcebf g"
     forward, backward = duplicate_finding(repeated, single), duplicate_finding(single, repeated)
-    assert (forward.match_length, backward.match_length) == (48, 45)
+    assert (forward.match_length, backward.match_length) == (48, 48)
 
     matcher = TextMatcher()
     matcher.add("d1", single)

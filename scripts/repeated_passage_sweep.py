@@ -10,11 +10,10 @@ reported overlap against a brute-force longest-common-substring calculation,
 and reports how many cases the matcher reported shorter than the true value,
 and by how much at most.
 
-Known result (2026-11-07, main at 995e4f8): 1 of 4,500 cases is short, by one
-character. The matcher aligns a repeated chunk only at its first position, so
-it can miss a slightly longer extension at a later position. That case still
-clears the duplicate flag, because any shared 40-character chunk already yields
-a flagged span. See docs/STATUS.md.
+Expected result: 0 of 4,500 cases are short. Before the alignment fix, the
+matcher aligned a repeated chunk only at its first position, and 1 case was 1
+character short (see docs/STATUS.md). The fixed case is a regression test in
+tests/test_repeated_passages.py.
 """
 from __future__ import annotations
 
