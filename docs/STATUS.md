@@ -2,7 +2,7 @@
 
 Snapshot of verified state. Re-measure and update this file when the code or the tests change.
 
-Last verified: 2026-11-07, at commit `c8d0dca` (main after PR #10).
+Last verified: 2026-11-07, against `main` at `995e4f8` (before the documentation pass in this PR). Re-verify after this PR merges and record the merged commit here.
 
 ## Test results
 
@@ -11,6 +11,17 @@ Last verified: 2026-11-07, at commit `c8d0dca` (main after PR #10).
 | With CNS 2.3.0 installed | 127 passed, 0 failed, 0 skipped |
 | Without CNS | 34 passed, 1 skipped (the CNS connector test file, which skips when CNS is missing) |
 | Lint (`ruff check .`) | Clean |
+
+These counts come from the committed test suite. The repeated-passage sweep is not part of it (see below).
+
+## Repeated-passage check
+
+- Index design: each 40-character chunk is recorded at its first position only. The alignment step therefore tries one position per repeated chunk, not every position.
+- Committed tests: `tests/test_repeated_passages.py` runs four deterministic scenarios (repeated in either text, reordered, overlapping, decoy continuations) and a seeded sweep of 120 cases. These run in CI.
+- Manual sweep: `scripts/repeated_passage_sweep.py` runs 4,500 cases with repeated and decoy passages, compared against a brute-force longest-common-substring check. It is too slow for CI and is run by hand.
+- Result (2026-11-07, main at `995e4f8`): 1 of 4,500 cases was reported shorter than the true overlap, by 1 character. The shared block appears twice in one text, and the matcher only aligned at the first occurrence. The duplicate flag was unaffected: any shared 40-character chunk already yields a span that clears the flag. The shortfall affects the reported length and score only.
+- An earlier informal run reported 0 short cases. It used different random draws from the committed script, so it did not reproduce the case above. The committed script is the reference.
+- Limit: these are sampled checks. They are evidence, not proof that the alignment is exhaustive. The known shortfall is a limitation of the current design, not a fixed behavior.
 
 ## CNS interaction: partial
 
@@ -21,12 +32,9 @@ Last verified: 2026-11-07, at commit `c8d0dca` (main after PR #10).
 ## Known gaps
 
 - The duplicate and recurrence thresholds live in CCCb, next to the math. CCC owns the decision about what a match means, but not yet these numbers.
-
-## Repeated-passage check
-
-- Index design: each 40-character chunk is recorded at its first position only. The matcher's description says it finds all matching spans, so the two differ.
-- Result: 4,500 randomized cases with repeated and decoy passages, plus a deterministic test file (`tests/test_repeated_passages.py`), found no case where the reported overlap was shorter than the brute-force longest shared stretch.
-- Not exhaustive. These are sampled checks, not a proof.
+- The duplicate score is a heuristic, not a calibrated probability. It does not account for searching across many prior records.
+- Repeated chunks are aligned at their first position only. This can under-report the overlap length by a character or more (one case in the manual sweep). Whether to change the design is an open decision.
+- Node.js 20 deprecation warnings appear in CI for the checkout and setup-python actions. Upgrade planned, not done.
 
 ## Known limits
 

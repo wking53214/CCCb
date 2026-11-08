@@ -12,13 +12,13 @@ idiosyncratic match is not something two unrelated processes produce by
 chance -- which licenses treating the two as the same thing observed twice,
 never that the thing itself is real.
 
-The math: Shannon's 1951 estimate of English text entropy is roughly
-1.0-1.5 bits per character (published, not invented here). Modeling a
-chance character-for-character match at that rate, the probability that an
-L-character exact overlap arose by coincidence between two independent
-texts is roughly 2^(-H*L). That number gets astronomically small fast --
-which is the point: a short coincidental match is plausible, a long one
-is not.
+The score: Shannon's 1951 estimate of English text entropy is roughly
+1.0-1.5 bits per character. Using a fixed figure of 1.3, the module reports
+2^(-1.3 * L) for an L-character exact overlap. This is a heuristic coincidence
+score, not a calibrated probability. It does not account for searching across
+many prior records, and it does not model real English dependencies. The
+score falls fast with length, which is the intent: a short coincidental match
+is plausible, a long one is not.
 
 ## History: this module was rewritten once, adversarially, against itself
 
@@ -41,16 +41,14 @@ It had three confirmed, live exploits before this rewrite:
    otherwise word-for-word identical string dropped the match from the
    full string length to match_length=11.
 
-This version replaces the single-longest-match algorithm with exhaustive
-shingle-based matching (every position, not sampled) specifically because
-sampling introduces a real, separate recall risk: two independent texts'
-shingle grids can be out of phase with each other near the boundary of a
-short match. Exhaustive (stride 1) extraction has no such gap -- any shared
-substring of at least SHINGLE_LENGTH characters is guaranteed to produce at
-least one matching shingle in both texts, independent of position. This is
-the same reasoning that ruled out a sampled/strided global index earlier in
-this project; it's used here because the risk it was rejected for doesn't
-apply at stride 1.
+This version replaces the single-longest-match algorithm with shingle-based
+matching. Candidate lookup indexes every starting position (stride 1, not
+sampled), so a shared substring of at least SHINGLE_LENGTH characters always
+produces a shared shingle. That avoids the phase gap that sampling creates.
+The alignment step is narrower: each repeated shingle is recorded at its first
+position only, so a repeated chunk is aligned at one position per text. See
+_matching_spans for the limit and the sampled checks behind it. This is not an
+exhaustive search of every alignment.
 
 
 Moved here from CCC
@@ -229,9 +227,10 @@ def _matching_spans(text_a: str, text_b: str) -> list:
 
     Each 40-character chunk is aligned only at its first position in each
     text (see _shingle_positions), so a chunk that repeats is not tried at
-    its other positions. Sampled checks found no case where this returned
-    less than the true longest shared stretch (see docs/STATUS.md). This is
-    not an exhaustive search of every alignment.
+    its other positions, so the reported overlap can be a character or more
+    shorter than the true longest shared stretch. A manual sweep found one
+    such case in 4,500 (see docs/STATUS.md). This is not an exhaustive search
+    of every alignment.
 
     Finding candidates is O(n) (shingle intersection); extending each into
     its full span is O(span length). Keeping several spans lets a longer
@@ -301,12 +300,10 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
 class ShingleIndex:
     """Incremental index from shingle -> the set of ids whose text contains
     it, so a new finding can be checked against candidates that plausibly
-    overlap without scanning every prior finding. Safe by construction (see
-    module docstring): exhaustive, stride-1 shingle extraction means any
-    shared span of at least SHINGLE_LENGTH characters is guaranteed to
-    produce a shared shingle, independent of where it falls in either
-    text -- unlike a sampled/strided index, there is no phase-alignment gap
-    to silently miss a match through.
+    overlap without scanning every prior finding. Stride-1 extraction means a
+    shared span of at least SHINGLE_LENGTH characters always produces a shared
+    shingle, so candidate lookup will not miss it. Alignment is limited as
+    described in the module docstring and _matching_spans.
 
     This closes the O(N) per-insert candidate scan for the common case
     (genuinely novel content shares no shingle with anything, so lookup
