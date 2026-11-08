@@ -226,7 +226,10 @@ def recurrence_digest(finding: RecurrenceFinding) -> str:
 
 
 def binds(result: object, finding: object, *, subject: Optional[str] = None) -> bool:
-    """Whether ``result`` is a CNS verdict issued against exactly ``finding``.
+    """Whether ``result`` is a CNS gate result carrying the same subject and digest as ``finding``.
+
+    This checks the binding only. It does not establish the issuer, a passing
+    verdict, or authorization.
 
     ``finding`` is a ``DuplicateFinding`` (default subject ``DUPLICATE_SUBJECT``)
     or a ``RecurrenceFinding`` (default ``RECURRENCE_SUBJECT``). An unbound or

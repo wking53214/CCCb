@@ -11,7 +11,13 @@ Both measurements are deterministic and need no outside dependencies.
 | Duplicate | Is the overlap between two texts too long and specific to be coincidence? Short shared phrases are ignored; long, specific ones count. Produces an estimated coincidence score from the length of the matched text, using a fixed English information estimate (about 1.3 bits per character). | `cccb.matching` |
 | Recurrence | Do two texts share enough meaningful vocabulary to look like the same pattern seen again? Compares sets of significant words (Jaccard overlap, threshold 0.5). Catches shared wording, not the same idea expressed differently. | `cccb.recurrence` |
 
-`cccb.TextMatcher` bundles both behind three calls: `add`, `duplicate_of`, and `recurrence_of`. They return plain strings and numbers. Indexes live in memory only, so a caller that persists texts must re-add them after a restart.
+`cccb.TextMatcher` bundles both behind three calls:
+
+- `add(item_id, text)` returns nothing.
+- `duplicate_of(text)` returns `(item_id, anti_probability, match_length)`, or `None` when nothing matches.
+- `recurrence_of(text)` returns `(item_id, score, matches)`, or `None` when nothing matches.
+
+`anti_probability` is the heuristic coincidence score described above. Indexes live in memory only, so a caller that persists texts must re-add them after a restart.
 
 ## Using it with CCC
 
