@@ -1,8 +1,8 @@
 """Adversarial checks for repeated, reordered, and overlapping passages.
 
-The matcher indexes each 40-character chunk by its first position only. These
-tests check that the longest genuine overlap is still reported when the same
-chunk appears more than once, in either text, with different surroundings.
+The matcher aligns each occurrence of a repeated 40-character chunk. These
+tests check that the longest genuine overlap is reported when the same chunk
+appears more than once, in either text, with different surroundings.
 
 Each expected length is checked against a brute-force longest-common-substring
 calculation, so the tests do not depend on how the matcher is written.
@@ -87,3 +87,25 @@ def test_seeded_cases_match_brute_force_longest_overlap():
         truth = _longest_common_substring(a, b)
         if truth >= MINIMUM_MATCH_LENGTH:
             assert _reported(a, b) >= truth, (truth, a, b)
+
+
+def test_regression_block_repeated_in_one_text_is_reported_in_full():
+    """Found by the manual sweep (scripts/repeated_passage_sweep.py): the block
+    appears twice in `a`, and only the first alignment was tried, so the
+    reported overlap was 60 instead of the true 61."""
+    a = ("tjvmrrtuqlgl..ol vuzemzjklss.jsphschkjkdrs.mxmrptfbtoa rpogfwhnprgfznkqnjixmuvnxihfelhwysbbzffilcse.cyhzfouzbjpugq .brqvsx xedwsgfyjno dtgnxihfelhwysbbzffilcse.cyhzfouzbjpugq .brqvsx xedwsgfyjno dtgswuqzyf w")
+    b = ("w.ypjhmnjmaznnposqqgtq.z.j wmhxeqydy.jqmaxiw moecrjgnxihfelhwysbbzffilcse.cyhzfouzbjpugq .brqvsx xedwsgfyjno dtgoodbfitncktbhxkhahdmige.rbpluurzfo.cbfaty")
+    assert _longest_common_substring(a, b) == 61
+    assert _reported(a, b) == 61
+
+
+def test_repetitive_input_stays_fast():
+    """Every occurrence is tried, capped per chunk, so highly repetitive text
+    must not blow up the runtime."""
+    import time
+
+    a = "ab" * 25_000
+    b = "ab" * 24_000 + "xyz" + "ab" * 1_000
+    started = time.perf_counter()
+    assert _reported(a, b) >= MINIMUM_MATCH_LENGTH
+    assert time.perf_counter() - started < 10

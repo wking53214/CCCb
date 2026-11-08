@@ -45,10 +45,10 @@ This version replaces the single-longest-match algorithm with shingle-based
 matching. Candidate lookup indexes every starting position (stride 1, not
 sampled), so a shared substring of at least SHINGLE_LENGTH characters always
 produces a shared shingle. That avoids the phase gap that sampling creates.
-The alignment step is narrower: each repeated shingle is recorded at its first
-position only, so a repeated chunk is aligned at one position per text. See
-_matching_spans for the limit and the sampled checks behind it. This is not an
-exhaustive search of every alignment.
+Alignment tries every occurrence of a shared chunk, up to
+MAX_OCCURRENCES_PER_SHINGLE per text, so a repeated passage is measured at each
+of its positions. The cap bounds the work on highly repetitive input. See
+_matching_spans.
 
 
 Moved here from CCC
@@ -193,6 +193,28 @@ class MatchResult(NamedTuple):
                 and not self.explained_by_known_boilerplate)
 
 
+# A chunk that occurs more than this many times in one text is aligned only at
+# its first MAX_OCCURRENCES_PER_SHINGLE positions there. This bounds the work on
+# highly repetitive input. It is the one remaining alignment limit, and it is
+# deterministic.
+MAX_OCCURRENCES_PER_SHINGLE = 32
+
+
+def _shingle_occurrences(text: str) -> dict:
+    """shingle string -> its starting positions in text, ascending, capped at
+    MAX_OCCURRENCES_PER_SHINGLE per shingle. O(n)."""
+    n = len(text)
+    if n < SHINGLE_LENGTH:
+        return {}
+    occurrences = {}
+    for i in range(n - SHINGLE_LENGTH + 1):
+        shingle = text[i:i + SHINGLE_LENGTH]
+        found = occurrences.setdefault(shingle, [])
+        if len(found) < MAX_OCCURRENCES_PER_SHINGLE:
+            found.append(i)
+    return occurrences
+
+
 def _shingle_positions(text: str) -> dict:
     """shingle string -> its first starting position in text. O(n)."""
     n = len(text)
@@ -223,33 +245,36 @@ def _extend_match(text_a: str, text_b: str, pos_a: int, pos_b: int, length: int)
 
 def _matching_spans(text_a: str, text_b: str) -> list:
     """Exact matching spans of at least SHINGLE_LENGTH characters between
-    the two texts, one per shingle alignment that is tried, not one only.
+    the two texts, one per alignment found.
 
-    Each 40-character chunk is aligned only at its first position in each
-    text (see _shingle_positions), so a chunk that repeats is not tried at
-    its other positions, so the reported overlap can be a character or more
-    shorter than the true longest shared stretch. A manual sweep found one
-    such case in 4,500 (see docs/STATUS.md). This is not an exhaustive search
-    of every alignment.
+    Every occurrence of a shared 40-character chunk is aligned, up to
+    MAX_OCCURRENCES_PER_SHINGLE per text, so a chunk that repeats is tried at
+    each of its positions. Each alignment is extended to its full span. An
+    alignment already covered by an earlier span (same offset between the
+    texts, position inside that span) is skipped.
 
-    Finding candidates is O(n) (shingle intersection); extending each into
-    its full span is O(span length). Keeping several spans lets a longer
-    boilerplate span elsewhere in the text avoid hiding a shorter, genuine
-    one."""
-    positions_a = _shingle_positions(text_a)
-    positions_b = _shingle_positions(text_b)
-    shared = positions_a.keys() & positions_b.keys()
+    Candidates are sorted, so the result is deterministic. Finding candidates
+    is O(n) plus the number of occurrence pairs; extending each into its full
+    span is O(span length). Keeping several spans lets a longer boilerplate
+    span elsewhere in the text avoid hiding a shorter, genuine one."""
+    occ_a = _shingle_occurrences(text_a)
+    occ_b = _shingle_occurrences(text_b)
+
+    pairs = []
+    for shingle in occ_a.keys() & occ_b.keys():
+        for pos_a in occ_a[shingle]:
+            for pos_b in occ_b[shingle]:
+                pairs.append((pos_a, pos_b))
+    pairs.sort()
 
     spans = []
-    covered = []  # (start, end) ranges in text_a already accounted for
-    # Left to right in text_a, not in set order: which shingle of a repeated passage is met first decides
-    # where its span starts, so hash order made the same two texts measure differently from run to run.
-    for shingle in sorted(shared, key=positions_a.__getitem__):
-        pos_a, pos_b = positions_a[shingle], positions_b[shingle]
-        if any(start <= pos_a < end for start, end in covered):
+    covered = []  # (offset, start_a, end_a) of spans already found
+    for pos_a, pos_b in pairs:
+        offset = pos_a - pos_b
+        if any(off == offset and start <= pos_a < end for off, start, end in covered):
             continue
         start_a, _start_b, length = _extend_match(text_a, text_b, pos_a, pos_b, SHINGLE_LENGTH)
-        covered.append((start_a, start_a + length))
+        covered.append((offset, start_a, start_a + length))
         spans.append((text_a[start_a:start_a + length], length))
     return spans
 
@@ -263,7 +288,7 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
     MINIMUM_MATCH_LENGTH characters, one per aligned shingle), not only the
     single longest. A longer boilerplate-only span must not be able to
     suppress a shorter genuine one sitting elsewhere in the same text.
-    Repeated chunks are aligned at their first position only; see
+    Repeated chunks are aligned at each of their positions, up to a cap; see
     _matching_spans. Both inputs are folded (see `_fold`) to
     close diacritic/fullwidth/common-confusable evasion before matching,
     and truncated to MAX_COMPARISON_LENGTH -- O(n) indexing means this can
