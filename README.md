@@ -2,6 +2,8 @@
 
 Measures how alike two pieces of text are. It does not decide what that similarity means.
 
+CCCb is part of ≡TACK, the whole library of repositories this project belongs to. It is a plug-in for [CCC](https://github.com/wking53214/CCC) (the Cognitive Continuity Constitution), the repo that keeps records and decides what a match means.
+
 ## What it measures
 
 Both measurements are deterministic and need no outside dependencies.
@@ -19,9 +21,9 @@ Both measurements are deterministic and need no outside dependencies.
 
 `anti_probability` is the heuristic coincidence score described above. Indexes live in memory only, so a caller that persists texts must re-add them after a restart.
 
-## Where it sits in the stack
+## Where this fits in ≡TACK
 
-CCCb is not a stage in the STACK spine. It is a library that serves one stage, CCC.
+CCCb is a shared library, not a stage in any chain. In the evidence spine (the chain below) it serves one stage, CCC.
 
     HERALD --> TIE --> Conservation_Kernel --> Governance_Gateway --> CCC
                                                                        ^
@@ -35,10 +37,10 @@ Who uses it (checked 2026-11-10):
 
 | Repo | How it uses CCCb |
 |---|---|
-| CCC | Optional `match` extra, pinned to `737cf0e` (current main). Runtime code never imports CCCb; 11 test files do. |
-| Link | Dev dependency pinned to older `8e3c779` (before the alignment fix). Used in one test. |
-| observe-perceive | Its CCC adapter imports `TextMatcher` from a sibling checkout, not a pin. |
-| CNS | Lists CCCb as an optional connector that loads `cns.gate` on demand. The spine script does not call it. |
+| [CCC](https://github.com/wking53214/CCC) | Optional `match` extra, pinned to `737cf0e` (the latest commit that changed code; later commits only change docs). Runtime code never imports CCCb; 11 test files do. |
+| [Link](https://github.com/wking53214/Link) | Dev dependency pinned to older `8e3c779` (before the alignment fix). Used in one test. |
+| [observe-perceive](https://github.com/wking53214/observe-perceive) | Its CCC adapter imports `TextMatcher` from a sibling checkout, not a pin. |
+| [CNS](https://github.com/wking53214/CNS) | Lists CCCb as an optional connector that loads `cns.gate` on demand. The spine script does not call it. |
 
 ## Using it with CCC
 
@@ -75,6 +77,8 @@ CCCb runs without CNS. To use the connector, install with `pip install 'cccb[cns
 
 The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks that a CNS gate result carries the same subject and digest as that finding. Change either text, swap the pair, or change a threshold, and the binding fails. Binding does not prove who issued the result, that it passed, or that anything was authorized.
 
+CNS's side of the seam is `cns_composition/consumers.py`, named in CNS's connection list (`contracts/cns-links.json`), where CCCb is listed as two-way (checked 2026-11-10 at CNS `03eca66`).
+
 The connector does not build gates, verdicts, or chains. It is a tested contract. No running flow in CCC or CNS calls `binds` from this package yet. (CCC calls its own verdict-binding method, which is a different function.)
 
 Current status and test results are in [docs/STATUS.md](docs/STATUS.md).
@@ -82,3 +86,7 @@ Current status and test results are in [docs/STATUS.md](docs/STATUS.md).
 ## Tests
 
 Run `pytest` from the repository root. Tests that need CNS skip when it is not installed. In CI, the CNS job installs the extra and fails instead of skipping. Lint runs with ruff.
+
+## License
+
+Apache-2.0, copyright 2026 William N. King. See `LICENSE` and `NOTICE`.
