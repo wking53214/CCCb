@@ -8,7 +8,7 @@ Last verified: 2026-11-10, on `main` at `5c1eff7` (merge of PR #15, which only c
 
 | Setup | Result |
 |---|---|
-| With CNS 2.3.0 installed | 129 passed, 0 failed, 0 skipped |
+| With CNS 3.0.0 installed | 129 passed, 0 failed, 0 skipped |
 | Without CNS | 36 passed, 1 skipped (the CNS connector test file, which skips when CNS is missing) |
 | Lint (`ruff check .`) | Clean |
 
