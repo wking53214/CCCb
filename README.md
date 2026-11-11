@@ -21,7 +21,7 @@ Both measurements are deterministic and need no outside dependencies.
 
 ## Where it sits in the stack
 
-CCCb is not a stage in the STACK spine. It is a library that serves one stage, CCC.
+CCCb is not a stage in the evidence spine. It is a library that serves one stage, CCC.
 
     HERALD --> TIE --> Conservation_Kernel --> Governance_Gateway --> CCC
                                                                        ^
