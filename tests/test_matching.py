@@ -1,4 +1,4 @@
-"""Direct tests for ccc.matching -- the anti-probability engine itself,
+"""Direct tests for cccb.matching -- the anti-probability engine itself,
 separate from test_external_finding.py's integration-level coverage.
 
 Several of these formalize things found during a flood/adversarial pass

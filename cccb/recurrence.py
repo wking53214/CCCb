@@ -7,7 +7,7 @@ had. discovery.py has the escalation machine; it had no way to notice that
 observation #2 is the same underlying thing as observation #1 unless a
 human said so. Without that, a stream of findings either stays a pile of
 disconnected ANOMALYs or gets miscounted -- the anti-probability duplicate
-check (ccc.matching) catches "literally the same content re-observed," but
+check (cccb.matching) catches "literally the same content re-observed," but
 that is the opposite signal: a re-observation is NOT an independent
 occurrence and must not advance a pattern. Recurrence is the other case --
 different content, same shape -- and it is what a 2nd occurrence means.
