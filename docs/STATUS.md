@@ -2,7 +2,7 @@
 
 Snapshot of verified state. Re-measure and update this file when the code or the tests change.
 
-Last verified: 2026-11-10, on `main` at `737cf0e` (merge of PR #14). The GitHub Actions run for that commit succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). Re-verify after the next merge and record the commit here.
+Last verified: 2026-11-10, on `main` at `5c1eff7` (merge of PR #15, which only changed docs after the code commit `737cf0e`). The GitHub Actions run for `5c1eff7` succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). The test counts below were re-run on `5c1eff7` the same day. Re-verify after the next merge and record the commit here.
 
 ## Test results
 
@@ -38,7 +38,7 @@ These counts come from the committed test suite. The manual sweep is not part of
 - The duplicate measure is easy to slip past: it is case and whitespace sensitive, needs a 40-character shared span, and reads only the first 50,000 characters. The recurrence measure flags the copies tried (upper-cased, doubled spaces, identical 38 characters, 80,000 characters of padding). CCC counts a recurrence as an occurrence, so a resubmission can advance a pattern. Whether to fix this in CCCb is an open decision. CCC's README records it as a known limit.
 - The duplicate and recurrence thresholds live in CCCb, next to the math. CCC owns the decision about what a match means, but not yet these numbers.
 - The duplicate score is a heuristic, not a calibrated probability. It does not account for searching across many prior records.
-- Link pins CCCb to `8e3c779`, 18 commits behind `main` and before the alignment fix. CCC pins `737cf0e`.
+- Link pins CCCb to `8e3c779`, 20 commits behind `main` at `5c1eff7` and before the alignment fix. CCC pins `737cf0e`.
 - Node.js 20 deprecation warnings appear in CI for the checkout and setup-python actions. Upgrade planned, not done.
 
 ## Known limits
@@ -60,4 +60,4 @@ Verified 2026-11-10 by reading the current code and documents:
 - HERALD, Conservation_Kernel, Governance_Gateway: no reference to CCCb.
 - TIE: no code reference. Its README describes CCCb as downstream in the spine, which does not match the CNS spine script.
 
-- Ecology: `ecology/semantic_index.py` defines `EcologySemanticIndex`, which implements the `SemanticIndex` interface that CCC defines in `ccc/semantic.py`. Read, not run.
+- Ecology: `semantic_index.py` at the root of the Ecology repo defines `EcologySemanticIndex`, which implements the `SemanticIndex` interface that CCC defines in `ccc/semantic.py`. Read, not run.
