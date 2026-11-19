@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = Path(cccb.__file__).resolve().parent
 BLOCK = "import sys; sys.modules['cns'] = None; sys.modules['cns.gate'] = None\n"
 ENV = {"PYTHONPATH": str(PACKAGE.parent), "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONDONTWRITEBYTECODE": "1"}
-HINT = "pip install 'cccb[cns]'"
+HINT = "pip install 'cccb[cns] @ git+https://github.com/wking53214/CCCb.git@main'"
 LONG = ("This exact sentence about the retry path never re-reading the lease "
         "was resubmitted word for word to inflate the anomaly count.")
 

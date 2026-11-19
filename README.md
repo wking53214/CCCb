@@ -90,7 +90,7 @@ The duplicate score is a heuristic estimate, not a calibrated probability: the e
 
 ## Optional CNS connector
 
-CCCb runs without CNS. To use the connector, install the extra from a clone with `pip install '.[cns]'`, or from GitHub with `pip install "cccb[cns] @ git+https://github.com/wking53214/CCCb.git"`. The short form `pip install 'cccb[cns]'`, which the connector's own error message prints, does not work: no package named `cccb` is published on the package index (EXECUTED 2026-11-17). The extra pins CNS to the tag `v4.0.0`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
+CCCb runs without CNS. To use the connector, install the extra from a clone with `pip install '.[cns]'`, or from GitHub with `pip install "cccb[cns] @ git+https://github.com/wking53214/CCCb.git"`. The connector's error message prints the GitHub form, because the short form `pip install 'cccb[cns]'` does not work: no package named `cccb` is published on the package index (EXECUTED 2026-11-17). The extra pins CNS to the tag `v4.0.0`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
 
 The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks that a CNS gate result carries the same subject and digest as that finding. Change either text, swap the pair, or change a threshold, and the binding fails. Binding does not prove who issued the result, that it passed, or that anything was authorized.
 
