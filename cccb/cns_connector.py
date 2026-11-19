@@ -37,7 +37,7 @@ copied), the measurement kind, the score, the threshold and minimum in force,
 and the result. Change a text, swap the pair, or change a threshold and the
 digest changes, so a verdict does not carry over.
 
-Install with the extra: ``pip install 'cccb[cns]'``.
+Install with the extra: ``pip install 'cccb[cns] @ git+https://github.com/wking53214/CCCb.git@main'``.
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ __all__ = [
     "recurrence_finding",
 ]
 
-INSTALL_HINT = "pip install 'cccb[cns]'"
+INSTALL_HINT = "pip install 'cccb[cns] @ git+https://github.com/wking53214/CCCb.git@main'"
 
 DUPLICATE_SUBJECT = "cccb.duplicate"
 RECURRENCE_SUBJECT = "cccb.recurrence"
