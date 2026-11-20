@@ -90,7 +90,9 @@ class RecurrenceDetector:
     observation costs O(concepts it shares with anything), not O(all prior
     discoveries)."""
 
-    def __init__(self):
+    def __init__(self, threshold: Optional[float] = None):
+        # None means RECURRENCE_THRESHOLD, read each time it is used.
+        self._threshold = threshold
         self._signatures: dict = {}          # discovery_id -> frozenset
         self._concept_to_ids: dict = {}      # concept -> set(discovery_id)
 
@@ -134,7 +136,7 @@ class RecurrenceDetector:
             if len(other) < MINIMUM_SIGNATURE_SIZE:
                 continue
             j = _jaccard(sig, other)
-            if j >= RECURRENCE_THRESHOLD:
+            if j >= (RECURRENCE_THRESHOLD if self._threshold is None else self._threshold):
                 matches.append((did, j))
         if not matches:
             return None

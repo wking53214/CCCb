@@ -186,11 +186,15 @@ class MatchResult(NamedTuple):
     match_length: int
     explained_by_known_boilerplate: bool = False
 
+    def implausible_at(self, threshold: float) -> bool:
+        """The same test as ``implausible_as_coincidence``, at a cut-off the caller chooses."""
+        return (self.match_length >= MINIMUM_MATCH_LENGTH
+                and self.anti_probability < threshold
+                and not self.explained_by_known_boilerplate)
+
     @property
     def implausible_as_coincidence(self) -> bool:
-        return (self.match_length >= MINIMUM_MATCH_LENGTH
-                and self.anti_probability < DUPLICATE_THRESHOLD
-                and not self.explained_by_known_boilerplate)
+        return self.implausible_at(DUPLICATE_THRESHOLD)
 
 
 # A chunk that occurs more than this many times in one text is aligned only at

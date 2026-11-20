@@ -20,20 +20,56 @@ persists its texts feeds them back through ``add`` after a restart.
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
-from . import matching
+from . import matching, recurrence
 from .recurrence import RecurrenceDetector
 
 __all__ = ["TextMatcher"]
 
 
-class TextMatcher:
-    """Duplicate and recurrence measurement over the texts it has been given."""
+def _checked_cutoff(value: Optional[float], name: str) -> Optional[float]:
+    """None, or a finite number above 0 and at most 1. Anything else is refused, not clamped."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{name} must be a number or None; got {type(value).__name__}")
+    number = float(value)
+    if not math.isfinite(number) or not 0.0 < number <= 1.0:
+        raise ValueError(f"{name} must be a finite number above 0 and at most 1; got {value!r}")
+    return number
 
-    def __init__(self) -> None:
+
+class TextMatcher:
+    """Duplicate and recurrence measurement over the texts it has been given.
+
+    The two cut-offs default to ``matching.DUPLICATE_THRESHOLD`` and
+    ``recurrence.RECURRENCE_THRESHOLD``. A caller that owns the decision (CCC)
+    can pass its own, and can read back what is in force from
+    ``duplicate_threshold`` and ``recurrence_threshold``.
+    """
+
+    def __init__(self, duplicate_threshold: Optional[float] = None,
+                 recurrence_threshold: Optional[float] = None) -> None:
+        self._duplicate_threshold = _checked_cutoff(duplicate_threshold, "duplicate_threshold")
+        self._recurrence_threshold = _checked_cutoff(recurrence_threshold, "recurrence_threshold")
         self._shingles = matching.ShingleIndex()
-        self._recurrence = RecurrenceDetector()
+        self._recurrence = RecurrenceDetector(self._recurrence_threshold)
+
+    @property
+    def duplicate_threshold(self) -> float:
+        """The anti-probability below which two overlapping texts count as a duplicate."""
+        if self._duplicate_threshold is None:
+            return matching.DUPLICATE_THRESHOLD
+        return self._duplicate_threshold
+
+    @property
+    def recurrence_threshold(self) -> float:
+        """The overlap at or above which two texts count as the same pattern."""
+        if self._recurrence_threshold is None:
+            return recurrence.RECURRENCE_THRESHOLD
+        return self._recurrence_threshold
 
     def add(self, item_id: str, text: str) -> None:
         self._shingles.add(item_id, text)
@@ -42,7 +78,7 @@ class TextMatcher:
     def duplicate_of(self, text: str) -> Optional[tuple[str, float, int]]:
         candidates = self._shingles.candidates_for(text)
         match = matching.best_match_against(text, candidates)
-        if match is None or not match[1].implausible_as_coincidence:
+        if match is None or not match[1].implausible_at(self.duplicate_threshold):
             return None
         item_id, result = match
         return (item_id, result.anti_probability, result.match_length)

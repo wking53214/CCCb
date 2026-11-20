@@ -69,3 +69,44 @@ def test_imports_nothing_from_ccc():
                 names = [node.module or ""]
             for name in names:
                 assert name.split(".")[0] != "ccc", f"{path.name} imports {name}"
+
+
+# The cut-offs: the defaults are unchanged, and a caller that owns the decision can set its own.
+
+def test_the_cutoffs_default_to_the_module_values_and_can_be_read_back():
+    m = TextMatcher()
+    assert m.duplicate_threshold == matching.DUPLICATE_THRESHOLD
+    assert m.recurrence_threshold == cccb.RECURRENCE_THRESHOLD
+
+
+def test_a_stricter_duplicate_cutoff_turns_a_match_into_no_match():
+    m = TextMatcher(duplicate_threshold=1e-300)
+    m.add("d1", LONG)
+    assert m.duplicate_threshold == 1e-300
+    assert m.duplicate_of("prefix " + LONG + " suffix") is None
+
+
+def test_a_looser_duplicate_cutoff_keeps_a_match_that_the_default_also_finds():
+    m = TextMatcher(duplicate_threshold=1e-3)
+    m.add("d1", LONG)
+    assert m.duplicate_of("prefix " + LONG + " suffix")[0] == "d1"
+
+
+def test_a_higher_recurrence_cutoff_drops_a_match_a_lower_one_keeps():
+    low, high = TextMatcher(recurrence_threshold=0.1), TextMatcher(recurrence_threshold=1.0)
+    for m in (low, high):
+        m.add("d1", PATTERN)
+    assert low.recurrence_of(RECUR) is not None
+    assert high.recurrence_of(RECUR) is None
+
+
+def test_a_bad_cutoff_is_refused_not_clamped():
+    import pytest
+    for bad in (0, -0.1, 1.5, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            TextMatcher(duplicate_threshold=bad)
+        with pytest.raises(ValueError):
+            TextMatcher(recurrence_threshold=bad)
+    for bad in ("0.5", True, [0.5]):
+        with pytest.raises(TypeError):
+            TextMatcher(duplicate_threshold=bad)
