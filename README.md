@@ -30,7 +30,7 @@ Both measurements are deterministic and need no outside dependencies.
 - **Depended on by.** CCC (optional `match` extra), Link (optional `match` extra), observe-perceive (its `chain` extra, used by its CCC adapter), and CNS (optional connector). The three that pin CCCb pin three different commits. See the table below (re-checked 2026-11-17).
 - **Fail behavior.** Without CNS, asking for a digest raises `CnsNotInstalled`. The duplicate measure is easy to slip past (case, spacing, short spans), and a match does not prove a text is genuine.
 
-EXECUTED 2026-11-17 at `5d27a12`, Python 3.13, in two fresh environments. With only this package and pytest installed (the command in "Tests"): 36 passed, 1 skipped (the connector test file, which needs CNS). With the `cns` extra installed and `CCCB_REQUIRE_CNS=1`, the way CI's second job runs: 129 passed, 0 skipped, at the pinned CNS v4.0.0 and at v4.1.0. `ruff check .` is clean with the CI's ruff version. The manual sweep script: 0 of 4,500 cases short. The 129 recorded here on 2026-11-15 is the second figure. Not run: GitHub CI, Python 3.11 and 3.12.
+EXECUTED 2026-11-17 at `5d27a12`, Python 3.13, in two fresh environments. With only this package and pytest installed (the command in "Tests"): 36 passed, 1 skipped (the connector test file, which needs CNS). With the `cns` extra installed and `CCCB_REQUIRE_CNS=1`, the way CI's second job runs: 129 passed, 0 skipped, at CNS v4.0.0 (the pin then) and at v4.1.0. `ruff check .` is clean with the CI's ruff version. The manual sweep script: 0 of 4,500 cases short. The 129 recorded here on 2026-11-15 is the second figure. Not run: GitHub CI, Python 3.11 and 3.12.
 
 ## Where this fits in ≡TACK
 
@@ -90,7 +90,7 @@ The duplicate score is a heuristic estimate, not a calibrated probability: the e
 
 ## Optional CNS connector
 
-CCCb runs without CNS. To use the connector, install the extra from a clone with `pip install '.[cns]'`, or from GitHub with `pip install "cccb[cns] @ git+https://github.com/wking53214/CCCb.git"`. The connector's error message prints the GitHub form, because the short form `pip install 'cccb[cns]'` does not work: no package named `cccb` is published on the package index (EXECUTED 2026-11-17). The extra pins CNS to the tag `v4.0.0`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
+CCCb runs without CNS. To use the connector, install the extra from a clone with `pip install '.[cns]'`, or from GitHub with `pip install "cccb[cns] @ git+https://github.com/wking53214/CCCb.git"`. The connector's error message prints the GitHub form, because the short form `pip install 'cccb[cns]'` does not work: no package named `cccb` is published on the package index (EXECUTED 2026-11-17). The extra pins CNS to the tag `v4.1.0`. Without CNS, asking for a digest raises `CnsNotInstalled` and nothing else changes.
 
 The connector (`cccb/cns_connector.py`) is the only place that knows CNS exists. It builds a finding for an ordered pair of texts: a hash of each text (the texts are not copied), the score, the thresholds in force, and whether the measurement cleared its threshold. A finding can be digested with CNS, and `binds` checks that a CNS gate result carries the same subject and digest as that finding. Change either text, swap the pair, or change a threshold, and the binding fails. Binding does not prove who issued the result, that it passed, or that anything was authorized.
 
